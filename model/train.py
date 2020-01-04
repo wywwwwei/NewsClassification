@@ -4,6 +4,9 @@ import numpy as np
 
 
 def weights_init(model):
+    """
+    Network weight initialization
+    """
     for name, w in model.named_parameters():
         if "embedding" not in name:
             if "weight" in name:
@@ -11,9 +14,12 @@ def weights_init(model):
 
 
 def train(model, attribute, hyperparameter, train_loader, validate_loader):
+    """
+    Dataset training
+    """
     model.train()
     # Instantiate an Adam optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=attribute.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=hyperparameter.lr)
     # User Cross-Entropy Loss Function.
     loss_func = nn.CrossEntropyLoss()
 
@@ -22,7 +28,7 @@ def train(model, attribute, hyperparameter, train_loader, validate_loader):
     flag = False
 
     for epoch in range(hyperparameter.epoch):
-        for (XTrain, YTrain) in enumerate(train_loader):
+        for _,(XTrain, YTrain) in enumerate(train_loader):
             # Clear gradients
             optimizer.zero_grad()
             # Forward Propagation
@@ -40,6 +46,9 @@ def train(model, attribute, hyperparameter, train_loader, validate_loader):
 
 
 def evaluate(model, attribute, test_loader, train=False, epoch=0):
+    """
+    The model is evaluated by validating the data set
+    """
     if(not train):
         model.load_state_dict(torch.load(attribute.save_path))
     model.eval()
@@ -55,4 +64,7 @@ def evaluate(model, attribute, test_loader, train=False, epoch=0):
             total += YTest.size(0)
             correct += (YPred == YTest).sum()
 
-    print("Accuracy: {}" .format(100*correct/total))
+    if train:
+        print("Epoch: {}  Accuracy: {}" .format(epoch,100*correct/total))
+    else:
+        print("Accuracy: {}" .format(100*correct/total))

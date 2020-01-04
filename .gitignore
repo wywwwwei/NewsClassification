@@ -1,1 +1,5 @@
 *.bigram-char
+result
+*.npz
+*.bak
+__pycache__

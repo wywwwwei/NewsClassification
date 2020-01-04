@@ -2,10 +2,14 @@ import torch
 import numpy as np
 import pickle as pkl
 import os
-import participle
+import data.participle as participle
 
-# Data iterator, let classification model use
+
 class DatasetIterator(object):
+    """
+    Data iterator, let classification model use
+    """
+
     def __init__(self, batches, batch_size, device):
         self.batch_size = batch_size
         self.batches = batches
@@ -26,7 +30,8 @@ class DatasetIterator(object):
 
     def __next__(self):
         if self.residue and self.index == self.n_batches:
-            batches = self.batches[self.index * self.batch_size: len(self.batches)]
+            batches = self.batches[self.index *
+                                   self.batch_size: len(self.batches)]
             self.index += 1
             batches = self._to_tensor(batches)
             return batches
@@ -35,7 +40,8 @@ class DatasetIterator(object):
             self.index = 0
             raise StopIteration
         else:
-            batches = self.batches[self.index * self.batch_size: (self.index + 1) * self.batch_size]
+            batches = self.batches[self.index *
+                                   self.batch_size: (self.index + 1) * self.batch_size]
             self.index += 1
             batches = self._to_tensor(batches)
             return batches
@@ -50,32 +56,39 @@ class DatasetIterator(object):
             return self.n_batches
 
 
-def build_iterator(dataset, attribute):
-    iter = DatasetIterator(dataset, attribute.batch_size, attribute.device)
+def build_iterator(dataset, attribute, hyperparameter):
+    iter = DatasetIterator(
+        dataset, hyperparameter.batch_size, attribute.device)
     return iter
 
-# Use sogounews as the pretrained word vector
-# Download link:https://github.com/Embedding/Chinese-Word-Vectors
-def load_pretrain_vector():
-    vocab_dir = "./data/vocab.pkl"
+
+def load_pretrain_vector(attribute):
+    """
+    Use sogounews as the pretrained word vector
+    Download link:https://github.com/Embedding/Chinese-Word-Vectors
+    """
+    
     pretrain_dir = "./data/sgns.sogounews.bigram-char"
     pretrain_save_name = "./data/embedding_sogounews"
 
     embedding_dimension = 300
 
-    if os.path.exists(vocab_dir):
-        word_to_id = pkl.load(open(vocab_dir, 'rb'))
+    word_to_id = participle.load_vocab_file(attribute)
+
+    if not os.path.exists(pretrain_save_name+".npz"):
+        print("npz not exist ")
+        embeddings = np.random.rand(len(word_to_id), embedding_dimension)
+        with open(pretrain_dir, "r", encoding='UTF-8') as f:
+            for i, line in enumerate(f.readlines()):
+                lin = line.strip().split(" ")
+                if lin[0] in word_to_id:
+                    print("in")
+                    idx = word_to_id[lin[0]]
+                    emb = [float(x) for x in lin[1:301]]
+                    embeddings[idx] = np.asarray(emb, dtype='float32')
+                    if i == 0:
+                        print(embeddings)
+        np.savez_compressed(pretrain_save_name, embeddings=embeddings)
     else:
-        word_to_id = participle.load_vocabulary()
-        pkl.dump(word_to_id, open(vocab_dir, 'wb'))
-
-    embeddings = np.random.rand(len(word_to_id), embedding_dimension)
-    with open(pretrain_dir, "r", encoding='UTF-8') as f:
-        for i, line in enumerate(f.readlines()):
-            lin = line.strip().split(" ")
-            if lin[0] in word_to_id:
-                idx = word_to_id[lin[0]]
-                emb = [float(x) for x in lin[1:301]]
-                embeddings[idx] = np.asarray(emb, dtype='float32')
-
-    np.savez_compressed(pretrain_save_name, embeddings=embeddings)
+        print("npz exists")
+    return word_to_id
